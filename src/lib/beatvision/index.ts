@@ -34,3 +34,27 @@ export {
   type StoredAudioMeta,
   type AudioValidation,
 } from "./audio.ts";
+export {
+  createGenerationJob,
+  listGenerationJobs,
+  listMediaAssets,
+  getProviderStatus,
+  type JobStatus,
+  type GenerationJobRow,
+  type MediaAssetRow,
+} from "./generation-store.ts";
+export type {
+  ProviderId,
+  ProviderCapability,
+  ProviderAvailability,
+  GenerationRequest,
+  ProviderResult,
+  SceneMediaProvider,
+} from "./providers/index.ts";
+export {
+  listProviders,
+  getProvider,
+  resolveProvider,
+  getProviderStatuses,
+  nullProvider,
+} from "./providers/index.ts";
