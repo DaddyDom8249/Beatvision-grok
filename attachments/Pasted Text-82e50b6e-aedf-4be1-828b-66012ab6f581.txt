@@ -1,0 +1,1237 @@
+BEATVISION ARENA — FULL ATOMIC-LEVEL AUDIT, REPAIR & VERIFICATION
+
+You are continuing an existing BeatVision Arena project.
+
+Do NOT start over.
+Do NOT redesign the product.
+Do NOT replace the existing architecture merely because you prefer another approach.
+Do NOT assume the project is broken everywhere.
+Do NOT claim repository access unless you actually have it.
+
+Your mission is:
+
+«Perform a complete atomic-level audit of the ACTUAL current BeatVision Arena repository, identify every meaningful defect, then repair and verify the project without breaking its existing functionality or core architecture.»
+
+This is an engineering audit and repair operation, not a brainstorming session.
+
+---
+
+1. FIRST: ESTABLISH REAL PROJECT ACCESS
+
+Before doing anything else:
+
+1. Confirm you can actually access the BeatVision Arena repository/files.
+2. Inspect the actual repository.
+3. Identify the current branch.
+4. Identify the current commit/state.
+5. Inspect the working tree.
+6. Identify the actual project structure.
+7. Identify package manager.
+8. Identify frontend.
+9. Identify backend.
+10. Identify database.
+11. Identify test system.
+12. Identify build system.
+13. Identify external providers.
+14. Identify environment/configuration requirements.
+
+If repository access is unavailable:
+
+STOP.
+
+Do not simulate the audit.
+
+Do not reconstruct files from previous conversations.
+
+Do not invent repository contents.
+
+Report exactly:
+
+«"I do not currently have repository access, so I cannot honestly perform the atomic audit."»
+
+Then stop repository-specific work.
+
+---
+
+2. CREATE A SAFE CHECKPOINT
+
+Before modifying code:
+
+Determine whether the repository has uncommitted changes.
+
+Preserve them.
+
+Do not delete or overwrite existing work.
+
+If appropriate and supported by the environment, create a safe checkpoint/branch before making substantial repairs.
+
+Do not reset the repository.
+
+Do not force-clean the working tree.
+
+Do not destroy existing history.
+
+---
+
+3. BUILD A COMPLETE ARCHITECTURE MAP
+
+Inspect the entire project.
+
+Map:
+
+Frontend
+Backend
+Database
+API
+Provider Interfaces
+AI Generation
+Audio Processing
+Image Generation
+Video Generation
+Timeline
+Scene System
+Asset System
+Render System
+Persistence
+Jobs
+Authentication
+Configuration
+Testing
+Deployment
+
+Identify the actual implementation of each.
+
+For every major subsystem, identify:
+
+- entry point
+- dependencies
+- inputs
+- outputs
+- persistence
+- error handling
+- tests
+- external dependencies
+
+Do not infer architecture from filenames alone.
+
+Follow the actual code paths.
+
+---
+
+4. CREATE AN ATOMIC AUDIT MATRIX
+
+Create an internal audit covering every meaningful implementation layer.
+
+Audit at minimum:
+
+A. Repository Integrity
+
+B. Build System
+
+C. TypeScript
+
+D. JavaScript
+
+E. React
+
+F. Vite
+
+G. Tailwind
+
+H. Express/Server
+
+I. SQLite
+
+J. SQLite WAL behavior
+
+K. Database schema
+
+L. Migrations
+
+M. Persistence
+
+N. API routes
+
+O. API validation
+
+P. Provider interfaces
+
+Q. Provider implementations
+
+R. AI generation
+
+S. Audio handling
+
+T. Audio persistence
+
+U. World generation
+
+V. Style Bible
+
+W. Character system
+
+X. Environment system
+
+Y. References
+
+Z. Storyboard
+
+AA. Master timeline
+
+AB. Scene generation
+
+AC. Scene uniqueness
+
+AD. Clip selection
+
+AE. Motion
+
+AF. Timeline assembly
+
+AG. Shotstack integration
+
+AH. Render jobs
+
+AI. Final render validation
+
+AJ. UI state
+
+AK. Loading states
+
+AL. Error states
+
+AM. Empty states
+
+AN. Browser refresh persistence
+
+AO. Duplicate operations
+
+AP. Race conditions
+
+AQ. Retry behavior
+
+AR. Security
+
+AS. File handling
+
+AT. Configuration
+
+AU. Environment variables
+
+AV. Cost/credit safety
+
+AW. Safe Demo Mode
+
+AX. Static audit
+
+AY. Automated tests
+
+AZ. Regression protection
+
+BA. Deployment readiness
+
+Do not skip a category because the application appears to work.
+
+---
+
+5. AUDIT ATOMICALLY
+
+Do not only inspect large files.
+
+Trace individual behavior.
+
+For every important feature, follow:
+
+USER ACTION
+↓
+UI EVENT
+↓
+STATE CHANGE
+↓
+API REQUEST
+↓
+SERVER ROUTE
+↓
+VALIDATION
+↓
+BUSINESS LOGIC
+↓
+DATABASE
+↓
+EXTERNAL PROVIDER
+↓
+RESPONSE
+↓
+STATE UPDATE
+↓
+UI
+
+Find breaks anywhere in this chain.
+
+A feature is not considered functional merely because its button exists.
+
+---
+
+6. TRACE DATA END-TO-END
+
+For every important entity, trace its complete lifecycle.
+
+At minimum:
+
+Project
+Song
+Audio
+Lyrics
+World
+Style Bible
+Character
+Environment
+Reference
+Storyboard
+Scene
+Scene Asset
+Motion
+Render Job
+Final Render
+
+For each entity determine:
+
+- creation
+- validation
+- storage
+- retrieval
+- editing
+- deletion
+- regeneration
+- versioning
+- relationship to other entities
+- failure behavior
+
+Look specifically for:
+
+- orphaned records
+- missing relationships
+- stale IDs
+- duplicate records
+- inconsistent naming
+- temporary state
+- local-only state
+- serialization problems
+- lost data after refresh
+
+---
+
+7. AUDIO AUDIT
+
+Audit the entire audio pipeline.
+
+Verify:
+
+- supported formats
+- 25 MB limit
+- MIME validation
+- file validation
+- upload handling
+- storage
+- project association
+- retrieval
+- persistence
+- browser refresh behavior
+- backend access
+- renderer access
+- final render audio
+- duration detection
+
+Confirm the uploaded audio survives the entire project lifecycle.
+
+Do not accept:
+
+audio exists only in React state
+
+or:
+
+audio exists only in localStorage
+
+when durable persistence is required.
+
+---
+
+8. WORLD GENERATION AUDIT
+
+Verify that Reveal World actually uses the song/project information.
+
+Trace:
+
+Song
++
+Lyrics
++
+Creative Direction
++
+Notes
+↓
+World Analysis
+↓
+Visual World Report
+↓
+World Persistence
+
+Verify that generated world information is actually consumed downstream.
+
+Look for the dangerous failure mode:
+
+World Report exists
+but scenes ignore it.
+
+If the Style Bible says one thing and scene generation produces another, fix the propagation.
+
+---
+
+9. STYLE BIBLE AUDIT
+
+Verify that Style Bible data is:
+
+- persisted
+- retrieved
+- versioned where appropriate
+- passed into generation
+- applied consistently
+
+Confirm that it affects downstream assets.
+
+Look for dead data.
+
+A field that is stored but never used is not complete functionality.
+
+---
+
+10. CHARACTER AUDIT
+
+Verify persistent character identity.
+
+Trace character information from:
+
+Character Definition
+↓
+Asset Generation
+↓
+Scene Assignment
+↓
+Prompt Construction
+↓
+Visual Generation
+↓
+Final Scene
+
+Identify where character consistency can break.
+
+Repair the smallest correct layer.
+
+---
+
+11. ENVIRONMENT AUDIT
+
+Perform the same trace for environments.
+
+Verify:
+
+- identity
+- persistence
+- scene association
+- prompt propagation
+- visual consistency
+- regeneration behavior
+
+---
+
+12. SCENE AUDIT
+
+Every scene must have a real purpose.
+
+Audit:
+
+- scene ID
+- timeline position
+- duration
+- source asset
+- prompt
+- world context
+- character context
+- environment context
+- motion
+- transition
+- status
+
+Look for scenes that are:
+
+- duplicated
+- empty
+- disconnected
+- orphaned
+- impossible to render
+- missing assets
+- missing prompts
+- outside the song duration
+
+---
+
+13. CRITICAL CLIP-RECYCLING AUDIT
+
+This is a mandatory deep audit.
+
+Search the entire codebase for every mechanism that can cause source clips to be reused.
+
+Search for:
+
+- repeat
+- loop
+- modulo
+- cycling
+- rotation
+- reverse
+- mirrored playback
+- fallback clip
+- source index reuse
+- array wrapping
+- clip duplication
+- repeated timeline items
+- automatic fill behavior
+- batch slicing
+- scene recycling
+
+Do not merely search for obvious "repeat" calls.
+
+Trace the actual data flow.
+
+Determine:
+
+How many unique source visuals can reach the final renderer?
+
+Then determine:
+
+How many times can each source visual appear?
+
+Identify every loophole allowing a small set of clips to fill a large timeline.
+
+---
+
+14. UNIQUE VISUAL COVERAGE
+
+The renderer must distinguish:
+
+scene count
+
+from
+
+unique visual coverage.
+
+A project containing 24 scene records does not necessarily contain 24 unique visuals.
+
+Audit this distinction explicitly.
+
+If 24 scenes reference 4 images, the project has approximately 4 unique visual sources, not 24.
+
+Do not allow scene-count inflation to conceal visual reuse.
+
+---
+
+15. ADJACENT DUPLICATION
+
+Implement or verify protection against accidental neighboring duplicates.
+
+Check:
+
+Scene N
+Scene N+1
+
+If they resolve to the same source visual without intentional continuity:
+
+flag it or replace it.
+
+Do not confuse legitimate continuity with accidental duplication.
+
+---
+
+16. TIMELINE AUDIT
+
+The song is the master timeline.
+
+Verify:
+
+Song Duration
+=
+Timeline Coverage
+
+within reasonable technical tolerance.
+
+Look for:
+
+- gaps
+- overlaps
+- excessive extension
+- clipping
+- premature endings
+- repeated source footage
+- scenes outside duration
+- audio longer than video
+- video longer than audio
+
+Do not solve duration mismatches by blindly looping clips.
+
+---
+
+17. SHOTSTACK AUDIT
+
+If Shotstack is present:
+
+Inspect the complete assembly pipeline.
+
+Verify:
+
+- source URLs
+- clip durations
+- timeline positions
+- asset references
+- transitions
+- audio
+- output configuration
+- polling
+- job status
+- failures
+- retries
+
+Search specifically for hidden clip repetition.
+
+Inspect generated timeline JSON where possible.
+
+Do not assume the assembly code is correct because Shotstack accepts the request.
+
+---
+
+18. RENDER AUDIT
+
+A technically successful render is only one layer of success.
+
+Validate:
+
+File
+
+- exists
+- readable
+- correct container
+
+Video
+
+- resolution
+- codec
+- frame rate
+- frame count
+- duration
+
+Audio
+
+- stream exists
+- codec
+- sample rate
+- channels
+- duration
+
+Timeline
+
+- scene coverage
+- ordering
+- transitions
+- duration
+
+Creative
+
+- visual uniqueness
+- world consistency
+- scene relevance
+- song relevance
+
+---
+
+19. PROVIDER FAILURE AUDIT
+
+For every external provider:
+
+Test what happens when it:
+
+- succeeds
+- fails
+- times out
+- returns malformed data
+- returns empty data
+- returns rate-limit errors
+- becomes unavailable
+
+Verify the application does not turn failures into fake success.
+
+---
+
+20. JOB SYSTEM AUDIT
+
+Trace every long-running job.
+
+Verify:
+
+created
+queued
+started
+processing
+completed
+failed
+cancelled
+retrying
+
+where supported.
+
+Look for:
+
+- stuck jobs
+- duplicate jobs
+- jobs that disappear
+- jobs that falsely complete
+- infinite retries
+- race conditions
+- stale status
+- provider failures not propagated
+
+---
+
+21. PERSISTENCE AUDIT
+
+Perform an explicit refresh test.
+
+For every major project state:
+
+1. Create it.
+2. Save it.
+3. Refresh.
+4. Reopen the project.
+5. Verify the state remains.
+
+Do not assume persistence because the UI looked correct before refresh.
+
+---
+
+22. DUPLICATE OPERATION AUDIT
+
+Test double-clicks and repeated requests.
+
+Examples:
+
+- Create Project twice
+- Upload twice
+- Generate World twice
+- Generate Scene twice
+- Start Render twice
+- Retry twice
+
+Prevent duplicate operations where they would corrupt state or waste provider credits.
+
+---
+
+23. SECURITY AUDIT
+
+Inspect:
+
+- secrets
+- environment variables
+- frontend bundles
+- server authorization
+- API validation
+- file uploads
+- path traversal
+- SQL injection
+- XSS
+- CORS
+- unsafe provider credentials
+- exposed internal endpoints
+- sensitive logging
+
+Fix real vulnerabilities.
+
+Do not invent vulnerabilities merely to make the report look impressive.
+
+---
+
+24. DEPENDENCY AUDIT
+
+Inspect:
+
+- package.json
+- lockfile
+- imports
+- unused dependencies
+- incompatible versions
+- unavailable packages
+- duplicated libraries
+
+Do not blindly upgrade everything.
+
+Repair only what is necessary.
+
+---
+
+25. TEST AUDIT
+
+Run the existing tests.
+
+Then inspect whether they actually test the important behavior.
+
+Verify:
+
+- static audit
+- type check
+- syntax
+- bundle
+- unit tests
+- integration tests
+- regression tests
+
+Do not weaken tests merely to make them pass.
+
+If a test fails because of whitespace or formatting while the behavior is correct, improve the assertion appropriately.
+
+If a test exposes a real behavioral bug, fix the code.
+
+---
+
+26. BUILD AUDIT
+
+Run the actual production build.
+
+Verify:
+
+- frontend build
+- backend build
+- bundle
+- TypeScript
+- generated artifacts
+- startup
+- runtime
+
+A successful development server is not sufficient.
+
+---
+
+27. DEAD CODE AUDIT
+
+Find:
+
+- unreachable code
+- unused functions
+- dead routes
+- unused database tables
+- unused fields
+- unused provider adapters
+- abandoned implementations
+- duplicate implementations
+- obsolete fallbacks
+
+Do not delete code automatically.
+
+Determine whether it is genuinely obsolete.
+
+---
+
+28. STATE-MACHINE AUDIT
+
+Find every state variable representing:
+
+- loading
+- generation
+- saving
+- rendering
+- errors
+- completion
+- provider status
+
+Look for impossible combinations such as:
+
+loading = false
+processing = true
+completed = true
+error = true
+
+unless intentionally supported.
+
+Make state transitions explicit and predictable.
+
+---
+
+29. UI AUDIT
+
+Inspect every major screen.
+
+Verify:
+
+- buttons actually work
+- loading indicators reflect reality
+- errors are visible
+- failed jobs remain understandable
+- saved data appears after refresh
+- empty states are useful
+- mobile layout works
+- navigation works
+- destructive actions are protected
+
+Do not judge UI solely by appearance.
+
+Follow each control to its actual implementation.
+
+---
+
+30. COST-SAFETY AUDIT
+
+Confirm development/testing paths do not accidentally invoke expensive providers.
+
+Safe Demo Mode should actually be safe.
+
+Verify that:
+
+- tests use mocks where appropriate
+- failed operations do not retry forever
+- refresh does not restart jobs
+- polling does not multiply uncontrollably
+- duplicate clicks do not create duplicate provider jobs
+
+---
+
+31. ATOMIC FIX RULE
+
+When you find a problem:
+
+Do not immediately rewrite the subsystem.
+
+Classify it:
+
+P0 — Critical
+
+Data loss, security issue, corrupted output, impossible state.
+
+P1 — Major
+
+Core workflow broken.
+
+P2 — Moderate
+
+Important feature partially broken.
+
+P3 — Minor
+
+Quality or maintainability issue.
+
+P4 — Cosmetic
+
+No functional impact.
+
+Fix in priority order.
+
+---
+
+32. FIX ROOT CAUSES
+
+Do not patch symptoms if the underlying architecture is wrong.
+
+Example:
+
+If duplicate clips are caused by a timeline allocator, fix the allocator.
+
+Do not merely add:
+
+if duplicate: skip
+
+somewhere downstream while the allocator continues generating invalid timelines.
+
+Trace the root cause.
+
+---
+
+33. DO NOT OVERFIX
+
+Every repair must preserve unrelated functionality.
+
+Before changing a subsystem ask:
+
+What existing behavior could this break?
+
+After changing it:
+
+Run the relevant regression tests.
+
+---
+
+34. VERIFY EVERY FIX
+
+For each repair:
+
+REPRODUCE
+↓
+FIX
+↓
+TEST FAILURE
+↓
+APPLY FIX
+↓
+TEST PASS
+↓
+REGRESSION TEST
+
+Do not merely edit code and assume success.
+
+---
+
+35. SECOND PASS
+
+After all identified repairs:
+
+Perform a second audit.
+
+Do not assume the first audit found everything.
+
+Search again for:
+
+- duplicate logic
+- stale implementation
+- bypasses
+- fallback paths
+- hidden repetition
+- broken persistence
+- inconsistent state
+- unhandled errors
+
+---
+
+36. FINAL END-TO-END TEST
+
+Run the complete BeatVision workflow:
+
+Create Project
+↓
+Enter Song Information
+↓
+Upload Audio
+↓
+Add Lyrics
+↓
+Add Creative Direction
+↓
+Create/Reveal World
+↓
+Persist World
+↓
+Approve World
+↓
+Create Style Bible
+↓
+Create Characters
+↓
+Create Environments
+↓
+Create References
+↓
+Build Storyboard
+↓
+Build Master Timeline
+↓
+Create Scenes
+↓
+Generate/Assign Visuals
+↓
+Generate Motion
+↓
+Assemble Timeline
+↓
+Render
+↓
+Validate Final Output
+
+Use safe/mock providers where possible.
+
+Use real providers only when necessary and safe.
+
+---
+
+37. FINAL ADVERSARIAL TEST
+
+Pretend you are a hostile QA engineer.
+
+Try to break the application using:
+
+- empty fields
+- invalid files
+- oversized files
+- unsupported formats
+- duplicate requests
+- refresh
+- back navigation
+- missing providers
+- provider failures
+- malformed provider output
+- database failure
+- missing assets
+- duplicated scenes
+- insufficient visuals
+- extremely short songs
+- long songs
+- repeated musical sections
+- failed renders
+- interrupted jobs
+
+Repair everything practical.
+
+---
+
+38. FINAL REPORT
+
+When complete, provide a concise but complete report:
+
+AUDIT RESULT
+
+Overall status:
+
+PASS / PASS WITH LIMITATIONS / FAIL
+
+REPOSITORY STATE
+
+- branch
+- commit
+- working tree status
+
+AUDIT COVERAGE
+
+List every major subsystem inspected.
+
+DEFECTS FOUND
+
+For each:
+
+- severity
+- file
+- root cause
+- repair
+
+FIXES APPLIED
+
+List exact changes.
+
+TESTS RUN
+
+List actual commands/tests executed.
+
+TEST RESULTS
+
+Give actual results.
+
+Do not invent results.
+
+BUILD RESULT
+
+Actual build status.
+
+RENDER RESULT
+
+If a render was performed:
+
+- duration
+- resolution
+- video codec
+- frame rate
+- audio codec
+- sample rate
+- channels
+- source visual count
+- timeline scene count
+- duplicate-source findings
+
+REMAINING ISSUES
+
+Only genuine unresolved issues.
+
+FINAL ASSESSMENT
+
+State whether BeatVision Arena is:
+
+- ready
+- substantially repaired but not production-ready
+- blocked
+- failing critical requirements
+
+Do not inflate the score.
+
+---
+
+39. ABSOLUTE HONESTY RULE
+
+Never report something as verified unless you actually verified it.
+
+Never report:
+
+"fixed"
+
+when you only changed code.
+
+Use:
+
+"changed but not verified"
+
+when appropriate.
+
+Never simulate:
+
+- repository access
+- command execution
+- test results
+- rendering
+- API responses
+- deployment
+- file inspection
+
+Evidence beats confidence.
+
+---
+
+40. FINAL MISSION
+
+Perform the audit now.
+
+Do not merely tell me how you would audit it.
+
+Actually inspect the project.
+
+Actually identify defects.
+
+Actually fix them.
+
+Actually run the available verification.
+
+Actually perform regression testing.
+
+Continue until:
+
+1. all practical P0/P1 issues are resolved,
+2. core BeatVision workflow is functional,
+3. clip recycling loopholes are closed,
+4. persistence is verified,
+5. build/tests pass,
+6. render assembly is validated,
+7. no obvious critical regression remains.
+
+Do not stop after finding the first bug.
+
+Do not stop after the build passes.
+
+Do not stop after the tests pass.
+
+The goal is not:
+
+"The code compiles."
+
+The goal is:
+
+«BeatVision Arena actually works from song input through a coherent, persistent, song-driven final video without cheating the timeline through recycled footage.»
+
+BEGIN THE AUDIT.

@@ -1,0 +1,943 @@
+BEATVISION ARENA — AUTHORIZED SURGICAL REPAIR PASS
+
+The atomic audit is complete.
+
+The repository was actually inspected and the audit identified the current state of "DaddyDom8249/BeatVision-arena" on "main".
+
+You are now authorized to repair the identified P0 and P1 defects.
+
+This is NOT authorization to redesign BeatVision.
+
+This is NOT authorization to merge the separate "DaddyDom8249/BeatVision" product into Arena.
+
+This is NOT authorization to rewrite Arena.
+
+This is a surgical repair pass against the actual current Arena repository.
+
+---
+
+CURRENT VERIFIED BASELINE
+
+Repository:
+
+"DaddyDom8249/BeatVision-arena"
+
+Branch:
+
+"main"
+
+Audited commit:
+
+"e07a9a2bcb37097ae2048bc8bdef39eaa28426a9"
+
+The audit established that Arena is currently:
+
+- vanilla HTML/JS/CSS frontend
+- GitHub Pages frontend
+- Cloudflare Worker backend
+- Durable Object animation jobs
+- Pixazo providers
+- Pollinations providers
+- Shotstack assembly
+- browser in-memory project state
+- sessionStorage gateway URL
+- localStorage animation job ID
+
+It is NOT currently the React/Vite/Express/SQLite application described by older BeatVision architecture notes.
+
+Do not "correct" this by rewriting Arena into React/Vite/Express/SQLite.
+
+---
+
+REPAIR PRIORITY
+
+Repair in this order:
+
+P0
+
+1. Durable project/audio persistence
+2. Song master timeline assembly
+3. Fail-closed authentication
+
+P1
+
+4. World confirmation checkpoint
+5. Complete Create Project inputs/audio requirements
+6. Fix live "animation-bridge.js" storyboard propagation
+7. Replace fabricated/demo behavior where it misrepresents real output
+8. Remove hardcoded industrial visual identity
+9. Persistent Style Bible / character / environment context
+10. Solve or correctly handle unique visual coverage limitations
+11. Remove unsafe browser provider retries
+12. Resume Durable Object animation jobs after refresh
+13. Correct Ken Burns fallback handling
+14. Real audio analysis or honest incomplete-state handling
+
+Do not move to P2/P3 cleanup until P0/P1 repairs are stable.
+
+---
+
+RULE 1 — CREATE A SAFE CHECKPOINT
+
+Before modifying code:
+
+1. Confirm current branch.
+2. Confirm current commit.
+3. Confirm working tree.
+4. Preserve existing work.
+5. Create a safe repair branch/checkpoint if appropriate.
+
+Do not reset "main".
+
+Do not force-clean the repository.
+
+Do not delete unrelated work.
+
+---
+
+RULE 2 — DO NOT TOUCH THE SEPARATE BEATVISION REPOSITORY
+
+Do NOT merge:
+
+"DaddyDom8249/BeatVision"
+
+into Arena during this task.
+
+Do NOT copy its architecture wholesale into Arena.
+
+Do NOT turn this into a multi-repository merger.
+
+The goal is to repair Arena itself.
+
+---
+
+P0-1 — DURABLE PROJECT + AUDIO PERSISTENCE
+
+Current defect:
+
+Project state exists primarily in browser JavaScript state.
+
+Audio is submitted as one-shot base64.
+
+Refresh destroys project state.
+
+This violates the requirement that the uploaded song belongs to the project and remains retrievable for rendering.
+
+Implement durable persistence appropriate to the existing Cloudflare architecture.
+
+Prefer an architecture such as:
+
+Project Metadata
+    ↓
+Durable Object / appropriate durable storage
+
+Audio Binary
+    ↓
+R2 or another appropriate durable object-storage mechanism
+
+Project
+    ↓
+audio reference
+
+Do NOT store a 25 MB audio file inside ordinary localStorage.
+
+Do NOT use localStorage as the durable source of truth.
+
+Do NOT send the entire audio repeatedly through browser-to-provider requests if avoidable.
+
+---
+
+AUDIO REQUIREMENTS
+
+Support:
+
+- MP3
+- WAV
+- M4A
+- AAC
+- FLAC
+
+Maximum:
+
+25 MB
+
+Validate:
+
+- extension
+- MIME type
+- actual size
+- empty file
+- malformed request
+- unsupported format
+
+Do not trust the browser's MIME declaration by itself.
+
+Preserve the uploaded file association with the project.
+
+---
+
+PROJECT PERSISTENCE
+
+Persist at minimum:
+
+- project ID
+- song title
+- artist
+- lyrics
+- creative direction
+- notes
+- audio reference
+- world
+- world approval state
+- style bible
+- characters
+- environments
+- references
+- storyboard
+- scenes
+- motion state
+- render state
+
+Do not necessarily build an elaborate relational product database if that is incompatible with Arena's current architecture.
+
+Use the smallest durable structure that correctly solves the problem.
+
+---
+
+REFRESH TEST
+
+After implementing persistence, verify:
+
+1. Create project.
+2. Upload audio.
+3. Save project.
+4. Refresh browser.
+5. Reopen project.
+6. Verify metadata.
+7. Verify world.
+8. Verify storyboard.
+9. Verify audio reference.
+10. Verify renderer can retrieve audio.
+
+Do not report persistence as fixed until this is actually tested.
+
+---
+
+P0-2 — MASTER TIMELINE ASSEMBLY
+
+Current defect:
+
+"shotstack-gateway.ts" concatenates unique clips until the target duration.
+
+It does NOT honor scene "startTime" / "endTime".
+
+This must be fixed.
+
+The song is the master timeline.
+
+---
+
+REQUIRED TIMELINE MODEL
+
+Each scene should have an explicit timeline position.
+
+Conceptually:
+
+Scene A
+startTime = 0
+endTime = 12
+
+Scene B
+startTime = 12
+endTime = 25
+
+Scene C
+startTime = 25
+endTime = 39
+
+Assembly must place scenes according to those positions.
+
+Do NOT simply concatenate clips until:
+
+sum(duration) >= targetDuration
+
+That behavior is specifically what the audit identified as incorrect.
+
+---
+
+TIMELINE RULES
+
+The assembler must:
+
+1. Read scene timing.
+2. Preserve ordering.
+3. Detect gaps.
+4. Detect overlaps.
+5. Validate duration.
+6. Reject impossible timelines.
+7. Never silently shift scenes merely to fill time.
+8. Never recycle clips to fill gaps.
+9. Never truncate valid scenes merely because extra clips exist.
+
+If a timeline is invalid:
+
+Return a useful structured error.
+
+Do not silently manufacture a different timeline.
+
+---
+
+P0-3 — FAIL-CLOSED AUTHENTICATION
+
+Current defect:
+
+Authentication effectively allows access when:
+
+GATEWAY_TOKEN
+
+is absent.
+
+This is unacceptable.
+
+Change the behavior to:
+
+No configured token
++
+Protected endpoint
+=
+DENY
+
+Public health/status endpoints may remain public where appropriate.
+
+Provider execution endpoints must not become publicly callable because configuration is missing.
+
+Verify:
+
+- token missing
+- wrong token
+- correct token
+
+with tests.
+
+---
+
+P1-1 — WORLD CONFIRMATION CHECKPOINT
+
+Current behavior automatically proceeds:
+
+World
+→ Assets
+→ Storyboard
+
+Change this.
+
+Required flow:
+
+Song
+↓
+Reveal World
+↓
+Visual World Report
+↓
+Creator Review
+↓
+"Yes, that's my world."
+↓
+World Approved
+↓
+Style Bible / Assets / Storyboard
+
+Do NOT allow downstream creative generation to silently bypass this checkpoint in the normal creator workflow.
+
+Persist:
+
+world.status = pending
+
+then:
+
+world.status = approved
+
+when confirmed.
+
+The approval must survive refresh.
+
+---
+
+P1-2 — CREATE PROJECT
+
+The project creation workflow must support:
+
+1. Song Title
+2. Artist
+3. Upload Song
+4. Lyrics
+5. Creative Direction
+6. Optional Notes
+
+Audio requirements:
+
+- MP3
+- WAV
+- M4A
+- AAC
+- FLAC
+- maximum 25 MB
+
+Do not silently keep the old 5.5 MB limitation.
+
+Do not use "accept="audio/*"" as the only validation.
+
+---
+
+P1-3 — FIX THE LIVE PIPELINE
+
+The audit discovered:
+
+"animation-bridge.js"
+
+overwrites the Run Pipeline behavior.
+
+The live path calls:
+
+execute('assemble', { ...p, audio, motion })
+
+while the expected pipeline state includes storyboard data.
+
+Fix the actual live path.
+
+Do not merely fix "app.js" while "animation-bridge.js" overwrites it.
+
+The actual browser execution path is the source of truth.
+
+Add the live bridge to static/regression auditing.
+
+---
+
+P1-4 — REMOVE MISLEADING HARD-CODED INDUSTRIAL STYLE
+
+Current code hardcodes:
+
+Dark industrial realism
+
+into image generation.
+
+Remove this as a universal style constraint.
+
+The song/world must determine the visual identity.
+
+A dark industrial song may still produce dark industrial imagery.
+
+A country song, love song, orchestral piece, comedy track, etc. must not be forced into cyberpunk/industrial aesthetics.
+
+The approved World + Style Bible should supply the visual language.
+
+---
+
+P1-5 — STYLE BIBLE / CHARACTER / ENVIRONMENT PROPAGATION
+
+Current world assets are too shallow.
+
+Improve the data flow without turning Arena into a completely different application.
+
+At minimum establish persistent structured context for:
+
+World
+Style Bible
+Characters
+Environments
+
+Then ensure scene generation actually consumes that context.
+
+The important pipeline is:
+
+Approved World
+↓
+Style Bible
+↓
+Characters / Environments
+↓
+Storyboard
+↓
+Scene
+↓
+Prompt
+↓
+Generated Asset
+
+Do not create database fields that are never used.
+
+Every important persisted creative rule should have a downstream consumer.
+
+---
+
+P1-6 — UNIQUE VISUAL COVERAGE
+
+The current fail-closed unique-coverage gate is GOOD.
+
+Do NOT remove it merely to make renders complete.
+
+Do NOT restore clip recycling.
+
+Instead determine whether Arena can legitimately produce enough unique visual coverage for a given song.
+
+If it cannot:
+
+Return a clear structured failure such as:
+
+INSUFFICIENT_UNIQUE_VISUAL_COVERAGE
+
+with useful information:
+
+- required duration
+- available unique duration
+- number of unique scenes
+- estimated deficit
+
+Then improve generation/planning where practical.
+
+Do not solve the problem by repeating clips.
+
+---
+
+ABSOLUTE ANTI-RECYCLING RULE
+
+Never restore:
+
+- modulo cycling
+- repeat loops
+- reverse-loop tricks
+- mirror tricks
+- arbitrary rotations
+- duplicated source URLs
+- duplicate asset IDs
+- timeline filler using old clips
+
+A source visual should not be presented as a new visual merely because playback direction or camera effects changed.
+
+---
+
+P1-7 — REMOVE UNSAFE 5XX RETRIES
+
+Current browser behavior retries certain 5xx/timeouts.
+
+This is dangerous because some provider calls are paid.
+
+A browser retry can create duplicate provider jobs.
+
+Determine which operations are:
+
+- idempotent
+- non-idempotent
+
+Only retry operations when safe.
+
+For non-idempotent provider generation:
+
+Do not blindly retry from the browser.
+
+If retry behavior is required, implement it server-side with explicit idempotency.
+
+---
+
+P1-8 — RESUME ANIMATION JOBS AFTER REFRESH
+
+Current behavior stores an animation job ID but does not properly resume it.
+
+Implement:
+
+page load
+↓
+stored project/job
+↓
+GET job status
+↓
+resume UI state
+
+If the Durable Object job is still running:
+
+show its current state.
+
+If complete:
+
+recover result.
+
+If failed:
+
+show failure.
+
+If unknown:
+
+show an honest recoverable state.
+
+Do not automatically start a second animation job.
+
+---
+
+P1-9 — KEN BURNS FALLBACK
+
+Current behavior:
+
+LTX failure
+→ Shotstack Ken Burns fallback
+
+but assemble rejects that fallback unless explicitly permitted.
+
+Determine the correct product behavior.
+
+Do not silently turn still-image zoom into generated motion.
+
+If fallback is allowed:
+
+- label it correctly
+- preserve provenance
+- make approval explicit
+- ensure assembly understands the asset type
+
+If fallback is not acceptable:
+
+fail clearly before wasting further work.
+
+Never disguise camera motion over a still as AI-generated motion.
+
+---
+
+P1-10 — AUDIO ANALYSIS
+
+Current live analysis primarily uses Whisper transcription.
+
+Do not fabricate:
+
+- BPM
+- energy
+- musical sections
+- intensity
+
+If real audio analysis can be implemented safely and cheaply:
+
+implement it.
+
+If it cannot:
+
+represent unavailable fields honestly.
+
+Do not insert invented musical metrics.
+
+The planner should still function from lyrics/transcription and available information.
+
+---
+
+P1-11 — DEMO MODE HONESTY
+
+Safe Demo Mode is allowed and useful.
+
+But distinguish:
+
+DEMO DATA
+
+from:
+
+REAL SONG ANALYSIS
+
+Do not present a fixed cyberpunk world and 214-second fake timeline as though it came from the user's actual song.
+
+Label demo values clearly.
+
+Do not allow demo behavior to leak into production execution paths.
+
+---
+
+STATIC AUDIT EXPANSION
+
+Update the static audit so that it covers the actual live browser path, especially:
+
+animation-bridge.js
+motion-bridge.js
+app.js
+
+Tests should detect:
+
+- missing storyboard propagation
+- unsafe retries
+- clip recycling
+- missing auth
+- incorrect timeline assembly
+- missing persistence wiring
+- world approval bypasses
+- hardcoded visual style
+- job resume regressions
+
+Do not make tests so fragile that harmless formatting changes break them.
+
+Do not make tests so weak that they merely search for a keyword.
+
+---
+
+TESTING REQUIREMENTS
+
+After repairs run:
+
+1. Existing static audit.
+2. Render integrity tests.
+3. Node syntax checks.
+4. Worker bundle checks.
+5. Auth tests.
+6. Persistence tests.
+7. Audio validation tests.
+8. Timeline tests.
+9. Duplicate/recycling tests.
+10. Job-resume tests.
+11. World-confirmation tests.
+12. Live smoke tests where safe.
+
+Use mocks wherever possible.
+
+Do NOT spend paid provider credits merely to run ordinary regression tests.
+
+---
+
+REAL PROVIDER TEST
+
+Do not run an expensive full production render automatically.
+
+Only perform a real provider render if it is necessary to validate a repaired production path and the environment explicitly permits it.
+
+If you do perform one:
+
+Record:
+
+- exact provider
+- job IDs
+- cost/credit implications if available
+- source scene count
+- unique source count
+- duration
+- output properties
+- failures
+
+Never claim a render was tested if it wasn't.
+
+---
+
+REGRESSION REQUIREMENT
+
+After every major repair:
+
+Run the relevant tests.
+
+After all repairs:
+
+Run the entire test suite again.
+
+Then inspect the final diff.
+
+Then perform a second static review.
+
+---
+
+DO NOT FIX BY HIDING THE PROBLEM
+
+Never make the audit green by:
+
+- deleting tests
+- weakening assertions
+- suppressing errors
+- accepting duplicate footage
+- increasing retry counts
+- fabricating provider responses
+- hardcoding demo values into production
+- bypassing authentication
+- silently changing requirements
+
+A green dashboard built by removing the smoke detector is not a successful repair.
+
+---
+
+FINAL ACCEPTANCE CRITERIA
+
+Do not declare this repair complete until these are true:
+
+Persistence
+
+A project survives refresh.
+
+Audio
+
+A real uploaded audio file can be persistently associated with a project and retrieved for rendering.
+
+Audio Validation
+
+25 MB limit and required formats are enforced.
+
+World
+
+World is generated from project/song information.
+
+Confirmation
+
+Creator must approve the World before downstream production.
+
+Style
+
+Approved world/style information reaches downstream generation.
+
+Timeline
+
+Scene "startTime" / "endTime" are honored.
+
+Coverage
+
+No source-clip recycling is used to fill the timeline.
+
+Auth
+
+Protected gateway endpoints fail closed.
+
+Live Bridge
+
+Actual "animation-bridge.js" behavior is tested.
+
+Jobs
+
+Animation jobs survive browser refresh and can resume.
+
+Retries
+
+Non-idempotent provider jobs are not blindly duplicated.
+
+Fallback
+
+Fallback motion is explicitly identified and handled.
+
+Demo
+
+Demo data cannot masquerade as real song analysis.
+
+Tests
+
+Existing tests pass plus new regression tests for repaired behavior.
+
+Build
+
+Worker builds successfully.
+
+---
+
+FINAL REPORT FORMAT
+
+When finished, report:
+
+REPAIR RESULT
+
+PASS / PASS WITH LIMITATIONS / BLOCKED
+
+BASE COMMIT
+
+Exact commit before changes.
+
+FINAL COMMIT
+
+Exact commit after changes.
+
+FILES CHANGED
+
+List every changed file.
+
+P0 FIXES
+
+List each P0 repair and verification.
+
+P1 FIXES
+
+List each P1 repair and verification.
+
+TESTS
+
+Give exact commands and actual results.
+
+BUILD
+
+Actual result.
+
+PERSISTENCE VERIFICATION
+
+Explain exactly how refresh/reopen was tested.
+
+AUDIO VERIFICATION
+
+Explain exact size/format validation tested.
+
+TIMELINE VERIFICATION
+
+Show that start/end timing is now honored.
+
+ANTI-RECYCLING VERIFICATION
+
+Report:
+
+- unique source count
+- scene count
+- duplicate count
+- recycling test result
+
+AUTH VERIFICATION
+
+Report:
+
+- no token
+- invalid token
+- valid token
+
+JOB RESUME VERIFICATION
+
+Report actual behavior.
+
+REAL PROVIDER RENDER
+
+Only report this section if one was actually performed.
+
+REMAINING LIMITATIONS
+
+Only genuine blockers.
+
+FINAL PRODUCT STATUS
+
+State whether Arena is:
+
+- repaired but still a provider lab
+- materially closer to the BeatVision creator product
+- production-ready
+- blocked
+
+Do not call it production-ready merely because tests pass.
+
+---
+
+EXECUTE NOW
+
+You have authorization to modify the repository.
+
+Start with the safe checkpoint.
+
+Then perform the P0 repairs.
+
+Then P1 repairs.
+
+Then tests.
+
+Then regression audit.
+
+Then final report.
+
+Do not stop after planning.
+
+Do not return a proposed patch without applying it.
+
+Do not rewrite the project.
+
+Do not merge unrelated repositories.
+
+Do not restore clip recycling.
+
+Do not fabricate verification.
+
+Make the smallest correct changes necessary to move the actual Arena repository toward the BeatVision product requirements.
