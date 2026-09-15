@@ -83,18 +83,15 @@ function GeneratePage() {
         const sbRaw = row.storyboard as
           | { storyboard: Storyboard; lockedAt: number | null }
           | null;
-        if (!sbRaw?.storyboard?.lockedAt && !sbRaw?.lockedAt) {
-          // Allow if storyboard itself has lockedAt
-          const locked =
-            (sbRaw as { storyboard?: Storyboard })?.storyboard?.lockedAt ??
-            (sbRaw as { lockedAt?: number | null })?.lockedAt;
-          if (!locked) {
-            setError(
-              "Storyboard is not locked yet. Lock it before generating media."
-            );
-            setScenes([]);
-            return;
-          }
+        const locked =
+          (sbRaw as { storyboard?: Storyboard })?.storyboard?.lockedAt ??
+          (sbRaw as { lockedAt?: number | null })?.lockedAt;
+        if (!locked) {
+          setError(
+            "Storyboard is not locked yet. Lock it before generating media."
+          );
+          setScenes([]);
+          return;
         }
 
         const board =
@@ -142,7 +139,15 @@ function GeneratePage() {
           `Generation failed: ${result.errorMessage ?? result.errorCode}`
         );
       } else if (result.status === "succeeded") {
-        setMessage(`Scene ${scene.id} generated (asset ${result.mediaAssetId}).`);
+        const url =
+          "mediaUrl" in result && typeof result.mediaUrl === "string"
+            ? result.mediaUrl
+            : null;
+        setMessage(
+          url
+            ? `Scene ${scene.id} generated. Media URL recorded (provider-hosted).`
+            : `Scene ${scene.id} generated (asset ${result.mediaAssetId}).`
+        );
       } else {
         setMessage(`Job ${result.jobId} status: ${result.status}`);
       }
@@ -162,7 +167,7 @@ function GeneratePage() {
       <header className="border-b border-[var(--bv-border)] bg-[var(--bv-surface)]">
         <div className="mx-auto max-w-4xl px-4 py-5">
           <p className="text-xs uppercase tracking-wider text-[var(--bv-muted)]">
-            Generation · provider-backed media
+            Generation · BeatVision Arena
           </p>
           <h1 className="text-xl font-semibold text-[var(--bv-text)]">
             {title || "Project"}
@@ -180,8 +185,8 @@ function GeneratePage() {
           <strong className="text-[var(--bv-text)]">Provider status</strong>
           {" — "}
           {anyAvailable
-            ? "At least one provider reports available."
-            : "No media provider is configured. Requests are recorded as unavailable; BeatVision will not invent media."}
+            ? "Arena is available for still-image generation."
+            : "Arena is not ready. Jobs will be recorded as unavailable or failed — no fake media."}
           <ul className="mt-3 space-y-1">
             {statuses.map((s) => (
               <li key={s.provider} className="text-xs">
@@ -198,19 +203,17 @@ function GeneratePage() {
               <li className="text-xs">Loading provider status…</li>
             )}
           </ul>
+          <p className="text-[11px] mt-2">
+            Requires server env BEATVISION_ARENA_URL and BEATVISION_ARENA_TOKEN.
+            Tokens never leave the server.
+          </p>
         </div>
 
-        {error && (
-          <p className="text-sm text-red-400">{error}</p>
-        )}
-        {message && (
-          <p className="text-sm text-amber-300">{message}</p>
-        )}
+        {error && <p className="text-sm text-red-400">{error}</p>}
+        {message && <p className="text-sm text-amber-300">{message}</p>}
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-[var(--bv-text)]">
-            Scenes
-          </h2>
+          <h2 className="text-lg font-semibold text-[var(--bv-text)]">Scenes</h2>
           {scenes.length === 0 ? (
             <p className="text-sm text-[var(--bv-muted)]">
               Lock a storyboard first, then return here.
@@ -224,12 +227,13 @@ function GeneratePage() {
                   const sceneJobs = jobs.filter((j) => j.scene_id === s.id);
                   const sceneAssets = assets.filter((a) => a.scene_id === s.id);
                   const latest = sceneJobs[0];
+                  const latestAsset = sceneAssets[0];
                   return (
                     <li
                       key={s.id}
-                      className="rounded-xl border border-[var(--bv-border)] bg-[var(--bv-surface)] p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between"
+                      className="rounded-xl border border-[var(--bv-border)] bg-[var(--bv-surface)] p-4 flex flex-col sm:flex-row sm:items-start gap-3 justify-between"
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="font-medium text-[var(--bv-text)] text-sm truncate">
                           {s.summary || s.id}
                         </p>
@@ -239,9 +243,7 @@ function GeneratePage() {
                         </p>
                         {latest && (
                           <p className="text-xs mt-1">
-                            <span className="text-[var(--bv-muted)]">
-                              Latest job:{" "}
-                            </span>
+                            <span className="text-[var(--bv-muted)]">Latest job: </span>
                             <span
                               className={
                                 latest.status === "succeeded"
@@ -259,10 +261,26 @@ function GeneratePage() {
                               : ""}
                           </p>
                         )}
-                        {sceneAssets.length > 0 && (
-                          <p className="text-xs text-[var(--bv-success)] mt-0.5">
-                            {sceneAssets.length} media asset(s) on file
-                          </p>
+                        {latestAsset?.url && (
+                          <div className="mt-2 space-y-1">
+                            <a
+                              href={latestAsset.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-[var(--bv-accent)] break-all underline"
+                            >
+                              Open media URL
+                            </a>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={latestAsset.url}
+                              alt={`Generated still for ${s.id}`}
+                              className="mt-1 max-h-40 rounded-lg border border-[var(--bv-border)] object-cover"
+                            />
+                            <p className="text-[10px] text-[var(--bv-muted)]">
+                              Provider-hosted URL — not claimed as permanent Grok storage.
+                            </p>
+                          </div>
                         )}
                       </div>
                       <button
@@ -271,9 +289,7 @@ function GeneratePage() {
                         onClick={() => requestScene(s)}
                         className="shrink-0 rounded-xl bg-[var(--bv-accent)] px-4 py-2 text-sm font-semibold text-[#0a0a0f] hover:bg-[var(--bv-accent-2)] disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        {busyScene === s.id
-                          ? "Requesting…"
-                          : "Request still"}
+                        {busyScene === s.id ? "Requesting…" : "Request still"}
                       </button>
                     </li>
                   );
@@ -284,9 +300,7 @@ function GeneratePage() {
 
         {jobs.length > 0 && (
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold text-[var(--bv-text)]">
-              Job log
-            </h2>
+            <h2 className="text-sm font-semibold text-[var(--bv-text)]">Job log</h2>
             <ul className="space-y-1 text-xs text-[var(--bv-muted)] font-mono">
               {jobs.slice(0, 20).map((j) => (
                 <li key={j.id}>
