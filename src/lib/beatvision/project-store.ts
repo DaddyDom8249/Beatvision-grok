@@ -1,7 +1,7 @@
 /**
  * Durable BeatVision project store (server-only).
  * Auth is OFF — rows are unowned. Scope by project id only.
- * Never trust client-sent ownership claims.
+ * Audio binary lives in client IndexedDB; server stores name + duration_sec.
  */
 
 import { createServerFn } from "@tanstack/react-start";
@@ -15,6 +15,7 @@ const DraftSchema = z.object({
   creativeDirection: z.string().default(""),
   notes: z.string().default(""),
   audioName: z.string().nullable().optional(),
+  durationSec: z.number().positive().nullable().optional(),
 });
 
 export type ProjectDraft = z.infer<typeof DraftSchema>;
@@ -47,7 +48,8 @@ export const createProject = createServerFn({ method: "POST" })
     const id = newId();
     await sql`
       insert into bv_projects (
-        id, title, artist, lyrics, creative_direction, notes, audio_name
+        id, title, artist, lyrics, creative_direction, notes,
+        audio_name, duration_sec
       ) values (
         ${id},
         ${data.title},
@@ -55,7 +57,8 @@ export const createProject = createServerFn({ method: "POST" })
         ${data.lyrics},
         ${data.creativeDirection},
         ${data.notes},
-        ${data.audioName ?? null}
+        ${data.audioName ?? null},
+        ${data.durationSec ?? null}
       )
     `;
     return { id };
@@ -86,9 +89,11 @@ export const listProjects = createServerFn({ method: "GET" }).handler(
       id: string;
       title: string;
       artist: string;
+      audio_name: string | null;
+      duration_sec: number | null;
       updated_at: string;
     }>`
-      select id, title, artist, updated_at::text
+      select id, title, artist, audio_name, duration_sec, updated_at::text
       from bv_projects
       order by updated_at desc
       limit 20
@@ -114,6 +119,28 @@ export const updateProjectDraft = createServerFn({ method: "POST" })
         creative_direction = ${data.draft.creativeDirection},
         notes = ${data.draft.notes},
         audio_name = ${data.draft.audioName ?? null},
+        duration_sec = ${data.draft.durationSec ?? null},
+        updated_at = now()
+      where id = ${data.id}
+    `;
+    return { ok: true as const };
+  });
+
+/** Persist measured audio metadata (name + real duration). */
+export const saveAudioMeta = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      id: z.string().min(1),
+      audioName: z.string().min(1),
+      durationSec: z.number().positive(),
+    })
+  )
+  .handler(async ({ data }) => {
+    const sql = await getSql();
+    await sql`
+      update bv_projects set
+        audio_name = ${data.audioName},
+        duration_sec = ${data.durationSec},
         updated_at = now()
       where id = ${data.id}
     `;
@@ -158,7 +185,7 @@ export const saveWorldState = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** Persist storyboard + optional estimated timeline blob. */
+/** Persist storyboard + optional timeline blob. */
 export const saveStoryboard = createServerFn({ method: "POST" })
   .validator(
     z.object({
