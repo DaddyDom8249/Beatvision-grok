@@ -1,5 +1,5 @@
-export * from "./types";
+export * from "./types.ts";
 export {
   validateStoryboard,
   storyboardIsValid,
-} from "./validate-storyboard";
+} from "./validate-storyboard.ts";

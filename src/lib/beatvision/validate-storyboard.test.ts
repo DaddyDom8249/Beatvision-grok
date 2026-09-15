@@ -1,11 +1,7 @@
-/**
- * Node test runner: npm test already uses node --test on selected paths.
- * This file is self-contained for local/node --test when wired.
- */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { validateStoryboard } from "./validate-storyboard";
-import type { LockedWorld, SongTimeline, Storyboard } from "./types";
+import { validateStoryboard } from "./validate-storyboard.ts";
+import type { LockedWorld, SongTimeline, Storyboard } from "./types.ts";
 
 const song: SongTimeline = {
   durationSec: 60,
@@ -73,116 +69,108 @@ function baseScene(
 }
 
 describe("validateStoryboard", () => {
-  it("passes a minimal valid board",
-    () => {
-      const board: Storyboard = {
-        scenes: [
-          baseScene({ id: "sc1", startSec: 8, endSec: 20 }),
-          baseScene({
-            id: "sc2",
-            startSec: 28,
-            endSec: 40,
-            sectionId: "s-chorus",
-            camera: {
-              scale: "close",
-              move: "slow_push",
-              energyBand: "high",
-            },
-          }),
-        ],
-      };
-      const result = validateStoryboard(song, world, board);
-      assert.equal(result.ok, true);
-      assert.equal(result.errors.length, 0);
-    });
+  it("passes a minimal valid board", () => {
+    const board: Storyboard = {
+      scenes: [
+        baseScene({ id: "sc1", startSec: 8, endSec: 20 }),
+        baseScene({
+          id: "sc2",
+          startSec: 28,
+          endSec: 40,
+          sectionId: "s-chorus",
+          camera: {
+            scale: "close",
+            move: "slow_push",
+            energyBand: "high",
+          },
+        }),
+      ],
+    };
+    const result = validateStoryboard(song, world, board);
+    assert.equal(result.ok, true);
+    assert.equal(result.errors.length, 0);
+  });
 
-  it("rejects unknown character",
-    () => {
-      const board: Storyboard = {
-        scenes: [
-          baseScene({ id: "sc1", characterIds: ["char-missing"] }),
-        ],
-      };
-      const result = validateStoryboard(song, world, board);
-      assert.equal(result.ok, false);
-      assert.ok(result.errors.some((e) => e.code === "UNKNOWN_CHARACTER"));
-    });
+  it("rejects unknown character", () => {
+    const board: Storyboard = {
+      scenes: [baseScene({ id: "sc1", characterIds: ["char-missing"] })],
+    };
+    const result = validateStoryboard(song, world, board);
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.some((e) => e.code === "UNKNOWN_CHARACTER"));
+  });
 
-  it("rejects forbidden camera move",
-    () => {
-      const board: Storyboard = {
-        scenes: [
-          baseScene({
-            id: "sc1",
-            startSec: 8,
-            endSec: 20,
-            camera: {
-              scale: "medium",
-              move: "orbit",
-              energyBand: "low",
-            },
-          }),
-        ],
-      };
-      const result = validateStoryboard(song, world, board);
-      assert.equal(result.ok, false);
-      assert.ok(result.errors.some((e) => e.code === "CAMERA_MOVE_FORBIDDEN"));
-    });
+  it("rejects forbidden camera move", () => {
+    const board: Storyboard = {
+      scenes: [
+        baseScene({
+          id: "sc1",
+          startSec: 8,
+          endSec: 20,
+          camera: {
+            scale: "medium",
+            move: "orbit",
+            energyBand: "low",
+          },
+        }),
+      ],
+    };
+    const result = validateStoryboard(song, world, board);
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.some((e) => e.code === "CAMERA_MOVE_FORBIDDEN"));
+  });
 
-  it("rejects move too short for slow_push",
-    () => {
-      const board: Storyboard = {
-        scenes: [
-          baseScene({
-            id: "sc1",
-            startSec: 8,
-            endSec: 10,
-            camera: {
-              scale: "medium",
-              move: "slow_push",
-              energyBand: "low",
-            },
-          }),
-        ],
-      };
-      const result = validateStoryboard(song, world, board);
-      assert.equal(result.ok, false);
-      assert.ok(result.errors.some((e) => e.code === "CAMERA_MOVE_TOO_SHORT"));
-    });
+  it("rejects move too short for slow_push", () => {
+    const board: Storyboard = {
+      scenes: [
+        baseScene({
+          id: "sc1",
+          startSec: 8,
+          endSec: 10,
+          camera: {
+            scale: "medium",
+            move: "slow_push",
+            energyBand: "low",
+          },
+        }),
+      ],
+    };
+    const result = validateStoryboard(song, world, board);
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.some((e) => e.code === "CAMERA_MOVE_TOO_SHORT"));
+  });
 
-  it("rejects overlapping scenes",
-    () => {
-      const board: Storyboard = {
-        scenes: [
-          baseScene({ id: "sc1", startSec: 8, endSec: 18 }),
-          baseScene({ id: "sc2", startSec: 16, endSec: 24 }),
-        ],
-      };
-      const result = validateStoryboard(song, world, board);
-      assert.equal(result.ok, false);
-      assert.ok(result.errors.some((e) => e.code === "SCENE_OVERLAP"));
-    });
+  it("rejects overlapping scenes", () => {
+    const board: Storyboard = {
+      scenes: [
+        baseScene({ id: "sc1", startSec: 8, endSec: 18 }),
+        baseScene({ id: "sc2", startSec: 16, endSec: 24 }),
+      ],
+    };
+    const result = validateStoryboard(song, world, board);
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.some((e) => e.code === "SCENE_OVERLAP"));
+  });
 
-  it("rejects silent media recycle",
-    () => {
-      const board: Storyboard = {
-        scenes: [
-          baseScene({
-            id: "sc1",
-            startSec: 8,
-            endSec: 16,
-            mediaAssetId: "asset-a",
-          }),
-          baseScene({
-            id: "sc2",
-            startSec: 16,
-            endSec: 24,
-            mediaAssetId: "asset-a",
-          }),
-        ],
-      };
-      const result = validateStoryboard(song, world, board);
-      assert.equal(result.ok, false);
-      assert.ok(result.errors.some((e) => e.code === "SILENT_MEDIA_RECYCLE"));
-    });
+  it("rejects silent media recycle", () => {
+    const board: Storyboard = {
+      scenes: [
+        baseScene({
+          id: "sc1",
+          startSec: 8,
+          endSec: 16,
+          mediaAssetId: "asset-a",
+        }),
+        baseScene({
+          id: "sc2",
+          startSec: 16,
+          endSec: 24,
+          mediaAssetId: "asset-a",
+        }),
+      ],
+    };
+    const result = validateStoryboard(song, world, board);
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.some((e) => e.code === "SILENT_MEDIA_RECYCLE"));
+  });
 });

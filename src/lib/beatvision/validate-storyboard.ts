@@ -14,7 +14,7 @@ import {
   type StoryboardScene,
   type ValidationIssue,
   type ValidationResult,
-} from "./types";
+} from "./types.ts";
 
 const DEFAULT_ALLOWED_MOVES: CameraMove[] = [
   "static",
@@ -69,7 +69,6 @@ export function validateStoryboard(
     return { ok: false, errors, warnings };
   }
 
-  // --- Per-scene checks ---
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
     const idx = storyboard.scenes.findIndex((s) => s.id === scene.id);
@@ -105,7 +104,6 @@ export function validateStoryboard(
       });
     } else {
       const section = sectionById(song, scene.sectionId)!;
-      // Scene should mostly live inside its section (allow tiny float epsilon)
       if (
         scene.startSec < section.startSec - 1e-3 ||
         scene.endSec > section.endSec + 1e-3
@@ -188,7 +186,6 @@ export function validateStoryboard(
       });
     }
 
-    // Media integrity (no-fake alignment)
     if (scene.mediaAssetId && scene.reuseMediaFromSceneId) {
       const source = storyboard.scenes.find(
         (s) => s.id === scene.reuseMediaFromSceneId
@@ -215,7 +212,6 @@ export function validateStoryboard(
       }
     }
 
-    // Silent recycle detection: same mediaAssetId on multiple scenes without reuse flag
     if (scene.mediaAssetId && !scene.reuseMediaFromSceneId) {
       const others = storyboard.scenes.filter(
         (s) =>
@@ -235,7 +231,6 @@ export function validateStoryboard(
     }
   }
 
-  // --- Overlaps ---
   for (let i = 0; i < scenes.length - 1; i++) {
     const a = scenes[i];
     const b = scenes[i + 1];
@@ -249,7 +244,6 @@ export function validateStoryboard(
     }
   }
 
-  // --- Coverage (optional gap warning) ---
   const covered = scenes.reduce((sum, s) => sum + durationOf(s), 0);
   if (covered > song.durationSec + 1e-3) {
     errors.push({
@@ -265,7 +259,6 @@ export function validateStoryboard(
     });
   }
 
-  // Gaps between consecutive scenes
   for (let i = 0; i < scenes.length - 1; i++) {
     const gap = scenes[i + 1].startSec - scenes[i].endSec;
     if (gap > 0.05) {
@@ -285,7 +278,6 @@ export function validateStoryboard(
   };
 }
 
-/** Convenience: only errors (for lock/generation gates). */
 export function storyboardIsValid(
   song: SongTimeline,
   world: LockedWorld,
