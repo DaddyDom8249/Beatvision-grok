@@ -91,7 +91,6 @@ function RevealWorldPage() {
   function handleReveal() {
     if (!draft) return;
     setRevealing(true);
-    // Short, honest delay so the action feels intentional — no fake AI spinner.
     window.setTimeout(() => {
       setReport(deriveReport(draft));
       setRevealing(false);
@@ -105,6 +104,10 @@ function RevealWorldPage() {
       JSON.stringify({ draft, report, confirmedAt: Date.now() })
     );
     setConfirmed(true);
+  }
+
+  function goToStyleBible() {
+    navigate({ to: "/project/world" });
   }
 
   if (!draft) {
@@ -236,19 +239,21 @@ function RevealWorldPage() {
                 </button>
               </div>
             ) : (
-              <div className="rounded-2xl border border-[var(--bv-success)]/30 bg-[var(--bv-success)]/5 p-5 space-y-3">
+              <div className="rounded-2xl border border-[var(--bv-success)]/30 bg-[var(--bv-success)]/5 p-5 space-y-4">
                 <p className="text-[var(--bv-text)] font-medium">
                   World confirmed.
                 </p>
                 <p className="text-sm text-[var(--bv-muted)]">
-                  Style Bible, Characters, Environments, Visual Rules, and
-                  References will build from this report next. Storyboard and
-                  generation stay locked to the song timeline.
+                  Next: lock the Style Bible, Characters, Environments, and
+                  Visual Rules so every later scene stays continuous.
                 </p>
-                <p className="text-sm text-[var(--bv-muted)]">
-                  Phase 1 complete. Next phase: Style Bible + persistent world
-                  assets.
-                </p>
+                <button
+                  type="button"
+                  onClick={goToStyleBible}
+                  className="rounded-xl bg-[var(--bv-accent)] px-6 py-3 text-sm font-semibold text-[#0a0a0f] hover:bg-[var(--bv-accent-2)]"
+                >
+                  Continue to Style Bible
+                </button>
               </div>
             )}
           </section>
