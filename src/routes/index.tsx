@@ -1,6 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { createProject, listProjects } from "@/lib/beatvision";
+import {
+  AUDIO_ACCEPT,
+  createProject,
+  extractAudioDurationSec,
+  listProjects,
+  storeProjectAudio,
+  validateAudioFile,
+} from "@/lib/beatvision";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -14,6 +21,13 @@ type ProjectDraft = {
   notes: string;
 };
 
+function formatDuration(sec: number): string {
+  const s = Math.round(sec);
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, "0")}`;
+}
+
 function Home() {
   const navigate = useNavigate();
   const [draft, setDraft] = useState<ProjectDraft>({
@@ -23,11 +37,21 @@ function Home() {
     creativeDirection: "",
     notes: "",
   });
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioName, setAudioName] = useState<string | null>(null);
+  const [durationSec, setDurationSec] = useState<number | null>(null);
+  const [readingAudio, setReadingAudio] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recent, setRecent] = useState<
-    { id: string; title: string; artist: string; updated_at: string }[]
+    {
+      id: string;
+      title: string;
+      artist: string;
+      audio_name: string | null;
+      duration_sec: number | null;
+      updated_at: string;
+    }[]
   >([]);
 
   useEffect(() => {
@@ -39,11 +63,42 @@ function Home() {
   const canStart =
     draft.title.trim().length > 0 &&
     draft.artist.trim().length > 0 &&
-    (audioName !== null || draft.lyrics.trim().length > 0);
+    (audioName !== null || draft.lyrics.trim().length > 0) &&
+    !readingAudio;
 
-  function handleAudioChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleAudioChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    setAudioName(file ? file.name : null);
+    setError(null);
+    setAudioFile(null);
+    setAudioName(null);
+    setDurationSec(null);
+
+    if (!file) return;
+
+    const validated = validateAudioFile(file);
+    if (!validated.ok) {
+      setError(validated.error);
+      e.target.value = "";
+      return;
+    }
+
+    setReadingAudio(true);
+    setAudioName(file.name);
+    try {
+      const d = await extractAudioDurationSec(file);
+      setAudioFile(file);
+      setDurationSec(d);
+    } catch (err) {
+      setAudioName(null);
+      setAudioFile(null);
+      setDurationSec(null);
+      setError(
+        err instanceof Error ? err.message : "Could not read audio duration"
+      );
+      e.target.value = "";
+    } finally {
+      setReadingAudio(false);
+    }
   }
 
   async function handleStart() {
@@ -58,13 +113,22 @@ function Home() {
         creativeDirection: draft.creativeDirection,
         notes: draft.notes,
         audioName,
+        durationSec,
       };
       const { id } = await createProject({ data: payload });
-      // Keep session cache for fast hand-off; DB is source of truth
+
+      if (audioFile && durationSec !== null) {
+        await storeProjectAudio(id, audioFile, durationSec);
+      }
+
       sessionStorage.setItem("bv-project-id", id);
       sessionStorage.setItem(
         "bv-project-draft",
-        JSON.stringify({ ...payload, audioName })
+        JSON.stringify({
+          ...payload,
+          audioName,
+          durationSec,
+        })
       );
       navigate({ to: "/project/new" });
     } catch (err) {
@@ -78,7 +142,6 @@ function Home() {
 
   function openProject(id: string) {
     sessionStorage.setItem("bv-project-id", id);
-    // Clear stage caches so downstream pages load from DB
     sessionStorage.removeItem("bv-project-draft");
     sessionStorage.removeItem("bv-world-report");
     sessionStorage.removeItem("bv-world-state");
@@ -108,9 +171,9 @@ function Home() {
               Start with a song
             </h2>
             <p className="mt-2 text-[var(--bv-muted)] leading-relaxed">
-              The song is the master creative and timeline source. Upload the
-              audio, add lyrics and direction, then reveal its visual world.
-              Projects are stored in the database and survive refresh.
+              The song is the master creative and timeline source. Upload audio
+              (MP3, WAV, M4A, AAC, FLAC · max 25 MB) to lock the real duration
+              into the storyboard timeline.
             </p>
           </div>
 
@@ -151,24 +214,34 @@ function Home() {
               <span className="text-sm font-medium text-[var(--bv-text)]">
                 Audio file
               </span>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[var(--bv-border)] bg-[var(--bv-surface-2)] px-4 py-2.5 text-sm text-[var(--bv-text)] hover:bg-[var(--bv-border)] transition">
                   <span>Choose file</span>
                   <input
                     type="file"
-                    accept="audio/*"
+                    accept={AUDIO_ACCEPT}
                     className="hidden"
                     onChange={handleAudioChange}
                   />
                 </label>
                 <span className="text-sm text-[var(--bv-muted)]">
-                  {audioName ?? "No file selected"}
+                  {readingAudio
+                    ? "Reading duration…"
+                    : audioName
+                      ? `${audioName}${durationSec != null ? ` · ${formatDuration(durationSec)}` : ""}`
+                      : "No file selected"}
                 </span>
               </div>
+              {durationSec != null && (
+                <p className="text-xs text-[var(--bv-success)]">
+                  Real duration measured: {durationSec.toFixed(2)}s. This becomes
+                  the song master timeline.
+                </p>
+              )}
               <p className="text-xs text-[var(--bv-muted)]">
-                Optional for now — lyrics alone can start a world. Audio becomes
-                the master timeline later. Filename is stored; bytes come in a
-                later phase.
+                MP3, WAV, M4A, AAC, FLAC · max 25 MB. Audio bytes stay in this
+                browser (IndexedDB); duration is saved to the project database.
+                Lyrics alone can still start a world (timeline will be estimated).
               </p>
             </label>
 
@@ -220,9 +293,7 @@ function Home() {
               />
             </label>
 
-            {error && (
-              <p className="text-sm text-red-400">{error}</p>
-            )}
+            {error && <p className="text-sm text-red-400">{error}</p>}
 
             <div className="pt-2">
               <button
@@ -242,8 +313,7 @@ function Home() {
                 Recent projects
               </h3>
               <p className="text-xs text-[var(--bv-muted)]">
-                Auth is off — projects are unowned and listed here for this
-                deployment. Open one to continue from where it left off.
+                Open one to continue. Duration is shown when previously measured.
               </p>
               <ul className="space-y-2">
                 {recent.map((p) => (
@@ -259,6 +329,12 @@ function Home() {
                       <span className="text-[var(--bv-muted)] text-sm">
                         {" "}by {p.artist}
                       </span>
+                      {p.duration_sec != null && (
+                        <span className="block text-xs text-[var(--bv-muted)] mt-0.5">
+                          {p.audio_name ?? "Audio"} ·{" "}
+                          {formatDuration(p.duration_sec)} master timeline
+                        </span>
+                      )}
                     </button>
                   </li>
                 ))}
