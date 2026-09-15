@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { getProject, saveWorldReport } from "@/lib/beatvision";
 
 export const Route = createFileRoute("/project/new")({
   component: RevealWorldPage,
@@ -29,8 +30,6 @@ type VisualWorldReport = {
 };
 
 function deriveReport(draft: Draft): VisualWorldReport {
-  // Deterministic, transparent derivation from the song inputs.
-  // No fake generation — this is an analysis pass the creator can accept or revise.
   const title = draft.title || "Untitled";
   const direction = draft.creativeDirection || "cinematic and emotional";
   const hasLyrics = draft.lyrics.trim().length > 0;
@@ -70,22 +69,64 @@ function deriveReport(draft: Draft): VisualWorldReport {
 
 function RevealWorldPage() {
   const navigate = useNavigate();
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [report, setReport] = useState<VisualWorldReport | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [revealing, setRevealing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem("bv-project-draft");
-    if (!raw) {
+    const id = sessionStorage.getItem("bv-project-id");
+    if (!id) {
       navigate({ to: "/" });
       return;
     }
-    try {
-      setDraft(JSON.parse(raw) as Draft);
-    } catch {
-      navigate({ to: "/" });
-    }
+    setProjectId(id);
+
+    (async () => {
+      try {
+        const row = await getProject({ data: { id } });
+        if (row) {
+          const d: Draft = {
+            title: row.title,
+            artist: row.artist,
+            lyrics: row.lyrics,
+            creativeDirection: row.creative_direction,
+            notes: row.notes,
+            audioName: row.audio_name,
+          };
+          setDraft(d);
+          sessionStorage.setItem(
+            "bv-project-draft",
+            JSON.stringify(d)
+          );
+          if (row.world_report) {
+            const wr = row.world_report as {
+              report?: VisualWorldReport;
+              confirmedAt?: number;
+            };
+            if (wr.report) {
+              setReport(wr.report);
+              if (wr.confirmedAt) setConfirmed(true);
+            }
+          }
+          return;
+        }
+      } catch {
+        // fall through to session cache
+      }
+      const raw = sessionStorage.getItem("bv-project-draft");
+      if (!raw) {
+        navigate({ to: "/" });
+        return;
+      }
+      try {
+        setDraft(JSON.parse(raw) as Draft);
+      } catch {
+        navigate({ to: "/" });
+      }
+    })();
   }, [navigate]);
 
   function handleReveal() {
@@ -97,13 +138,18 @@ function RevealWorldPage() {
     }, 600);
   }
 
-  function handleConfirm() {
-    if (!report || !draft) return;
-    sessionStorage.setItem(
-      "bv-world-report",
-      JSON.stringify({ draft, report, confirmedAt: Date.now() })
-    );
+  async function handleConfirm() {
+    if (!report || !draft || !projectId) return;
+    setSaving(true);
+    const payload = { draft, report, confirmedAt: Date.now() };
+    sessionStorage.setItem("bv-world-report", JSON.stringify(payload));
+    try {
+      await saveWorldReport({ data: { id: projectId, report: payload } });
+    } catch {
+      // session cache still holds it; DB will retry on next save
+    }
     setConfirmed(true);
+    setSaving(false);
   }
 
   function goToStyleBible() {
@@ -123,7 +169,7 @@ function RevealWorldPage() {
       <header className="border-b border-[var(--bv-border)] bg-[var(--bv-surface)]">
         <div className="mx-auto max-w-3xl px-4 py-5">
           <p className="text-xs uppercase tracking-wider text-[var(--bv-muted)]">
-            Project
+            Project{projectId ? ` · ${projectId.slice(0, 8)}` : ""}
           </p>
           <h1 className="text-xl font-semibold text-[var(--bv-text)]">
             {draft.title}
@@ -223,9 +269,10 @@ function RevealWorldPage() {
                 <button
                   type="button"
                   onClick={handleConfirm}
-                  className="rounded-xl bg-[var(--bv-accent)] px-6 py-3 text-sm font-semibold text-[#0a0a0f] hover:bg-[var(--bv-accent-2)]"
+                  disabled={saving}
+                  className="rounded-xl bg-[var(--bv-accent)] px-6 py-3 text-sm font-semibold text-[#0a0a0f] hover:bg-[var(--bv-accent-2)] disabled:opacity-50"
                 >
-                  Yes, that’s my world
+                  {saving ? "Saving…" : "Yes, that’s my world"}
                 </button>
                 <button
                   type="button"
@@ -241,7 +288,7 @@ function RevealWorldPage() {
             ) : (
               <div className="rounded-2xl border border-[var(--bv-success)]/30 bg-[var(--bv-success)]/5 p-5 space-y-4">
                 <p className="text-[var(--bv-text)] font-medium">
-                  World confirmed.
+                  World confirmed and saved.
                 </p>
                 <p className="text-sm text-[var(--bv-muted)]">
                   Next: lock the Style Bible, Characters, Environments, and
