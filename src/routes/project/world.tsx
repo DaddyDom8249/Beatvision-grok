@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { getProject, saveWorldState } from "@/lib/beatvision";
 
 export const Route = createFileRoute("/project/world")({
   component: WorldStudioPage,
@@ -112,36 +113,78 @@ function seedFromReport(report: VisualWorldReport, draft: Draft): Omit<WorldStat
 
 function WorldStudioPage() {
   const navigate = useNavigate();
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [world, setWorld] = useState<WorldState | null>(null);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem("bv-world-report");
-    if (!raw) {
+    const id = sessionStorage.getItem("bv-project-id");
+    if (!id) {
       navigate({ to: "/" });
       return;
     }
-    try {
-      const parsed = JSON.parse(raw) as {
-        draft: Draft;
-        report: VisualWorldReport;
-        confirmedAt: number;
-      };
-      const existing = sessionStorage.getItem("bv-world-state");
-      if (existing) {
-        setWorld(JSON.parse(existing) as WorldState);
-      } else {
-        const seeded = seedFromReport(parsed.report, parsed.draft);
-        setWorld({
-          draft: parsed.draft,
-          report: parsed.report,
-          ...seeded,
-          lockedAt: null,
-        });
+    setProjectId(id);
+
+    (async () => {
+      try {
+        const row = await getProject({ data: { id } });
+        if (row?.world_state) {
+          setWorld(row.world_state as WorldState);
+          sessionStorage.setItem(
+            "bv-world-state",
+            JSON.stringify(row.world_state)
+          );
+          return;
+        }
+        if (row?.world_report) {
+          const parsed = row.world_report as {
+            draft: Draft;
+            report: VisualWorldReport;
+            confirmedAt: number;
+          };
+          if (parsed.report && parsed.draft) {
+            const seeded = seedFromReport(parsed.report, parsed.draft);
+            setWorld({
+              draft: parsed.draft,
+              report: parsed.report,
+              ...seeded,
+              lockedAt: null,
+            });
+            return;
+          }
+        }
+      } catch {
+        // session fallback
       }
-    } catch {
-      navigate({ to: "/" });
-    }
+
+      const raw = sessionStorage.getItem("bv-world-report");
+      if (!raw) {
+        navigate({ to: "/project/new" });
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw) as {
+          draft: Draft;
+          report: VisualWorldReport;
+          confirmedAt: number;
+        };
+        const existing = sessionStorage.getItem("bv-world-state");
+        if (existing) {
+          setWorld(JSON.parse(existing) as WorldState);
+        } else {
+          const seeded = seedFromReport(parsed.report, parsed.draft);
+          setWorld({
+            draft: parsed.draft,
+            report: parsed.report,
+            ...seeded,
+            lockedAt: null,
+          });
+        }
+      } catch {
+        navigate({ to: "/" });
+      }
+    })();
   }, [navigate]);
 
   function updateStyleBible(patch: Partial<StyleBible>) {
@@ -190,12 +233,19 @@ function WorldStudioPage() {
     setSaved(false);
   }
 
-  function lockWorld() {
-    if (!world) return;
+  async function lockWorld() {
+    if (!world || !projectId) return;
+    setSaving(true);
     const locked: WorldState = { ...world, lockedAt: Date.now() };
     sessionStorage.setItem("bv-world-state", JSON.stringify(locked));
+    try {
+      await saveWorldState({ data: { id: projectId, worldState: locked } });
+    } catch {
+      // session still holds it
+    }
     setWorld(locked);
     setSaved(true);
+    setSaving(false);
   }
 
   function goToStoryboard() {
@@ -221,6 +271,7 @@ function WorldStudioPage() {
           <div>
             <p className="text-xs uppercase tracking-wider text-[var(--bv-muted)]">
               World continuity
+              {projectId ? ` · ${projectId.slice(0, 8)}` : ""}
             </p>
             <h1 className="text-xl font-semibold text-[var(--bv-text)]">
               {draft.title}
@@ -240,10 +291,9 @@ function WorldStudioPage() {
       <main className="flex-1 mx-auto w-full max-w-3xl px-4 py-10 space-y-10">
         <p className="text-[var(--bv-muted)] leading-relaxed">
           Style Bible, Characters, Environments, and Visual Rules persist for
-          every later stage. Do not reinterpret the world scene-by-scene.
+          every later stage. Saved to the database when you lock.
         </p>
 
-        {/* Style Bible */}
         <section className="rounded-2xl border border-[var(--bv-border)] bg-[var(--bv-surface)] p-6 space-y-4">
           <h2 className="text-lg font-semibold text-[var(--bv-text)]">
             Style Bible
@@ -281,7 +331,6 @@ function WorldStudioPage() {
           />
         </section>
 
-        {/* Characters */}
         <section className="rounded-2xl border border-[var(--bv-border)] bg-[var(--bv-surface)] p-6 space-y-5">
           <h2 className="text-lg font-semibold text-[var(--bv-text)]">
             Characters
@@ -319,7 +368,6 @@ function WorldStudioPage() {
           ))}
         </section>
 
-        {/* Environments */}
         <section className="rounded-2xl border border-[var(--bv-border)] bg-[var(--bv-surface)] p-6 space-y-5">
           <h2 className="text-lg font-semibold text-[var(--bv-text)]">
             Environments
@@ -349,7 +397,6 @@ function WorldStudioPage() {
           ))}
         </section>
 
-        {/* Visual Rules */}
         <section className="rounded-2xl border border-[var(--bv-border)] bg-[var(--bv-surface)] p-6 space-y-4">
           <h2 className="text-lg font-semibold text-[var(--bv-text)]">
             Visual Rules
@@ -382,9 +429,14 @@ function WorldStudioPage() {
           <button
             type="button"
             onClick={lockWorld}
-            className="rounded-xl bg-[var(--bv-accent)] px-6 py-3 text-sm font-semibold text-[#0a0a0f] hover:bg-[var(--bv-accent-2)]"
+            disabled={saving}
+            className="rounded-xl bg-[var(--bv-accent)] px-6 py-3 text-sm font-semibold text-[#0a0a0f] hover:bg-[var(--bv-accent-2)] disabled:opacity-50"
           >
-            {lockedAt ? "Update locked world" : "Lock world for storyboard"}
+            {saving
+              ? "Saving…"
+              : lockedAt
+                ? "Update locked world"
+                : "Lock world for storyboard"}
           </button>
           {lockedAt && (
             <button
@@ -397,7 +449,7 @@ function WorldStudioPage() {
           )}
           {saved && (
             <span className="text-sm text-[var(--bv-success)]">
-              World state saved. Ready for storyboard phase.
+              World state saved to database.
             </span>
           )}
         </div>
