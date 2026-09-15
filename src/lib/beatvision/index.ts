@@ -48,6 +48,7 @@ export type {
   ProviderCapability,
   ProviderAvailability,
   GenerationRequest,
+  GenerationWorldContext,
   ProviderResult,
   SceneMediaProvider,
 } from "./providers/index.ts";
@@ -56,5 +57,9 @@ export {
   getProvider,
   resolveProvider,
   getProviderStatuses,
+  getProviderStatusesLive,
   nullProvider,
+  arenaProvider,
+  buildArenaSceneImagesBody,
+  normalizeArenaSceneImagesResponse,
 } from "./providers/index.ts";

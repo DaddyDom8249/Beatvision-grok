@@ -1,6 +1,6 @@
 /**
  * Durable generation jobs + media assets.
- * Creating a job always attempts a real provider path; unavailable is explicit.
+ * Provider path: resolveProvider → Arena (or null) → persist truthfully.
  */
 
 import { createServerFn } from "@tanstack/react-start";
@@ -8,8 +8,10 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import {
   resolveProvider,
+  type GenerationWorldContext,
   type ProviderCapability,
 } from "./providers/index.ts";
+import type { Character, Environment, Storyboard, StoryboardScene } from "./types.ts";
 
 export type JobStatus =
   | "queued"
@@ -53,6 +55,84 @@ function newId(): string {
   return crypto.randomUUID();
 }
 
+type WorldStateBlob = {
+  draft?: {
+    title?: string;
+    artist?: string;
+    lyrics?: string;
+    creativeDirection?: string;
+  };
+  report?: unknown;
+  styleBible?: GenerationWorldContext["world"]["styleBible"];
+  characters?: Character[];
+  environments?: Environment[];
+  visualRules?: GenerationWorldContext["world"]["visualRules"];
+  lockedAt?: number | null;
+};
+
+function parseStoryboard(raw: unknown): Storyboard | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as { storyboard?: Storyboard; scenes?: StoryboardScene[] };
+  if (o.storyboard?.scenes) return o.storyboard;
+  if (Array.isArray(o.scenes)) return o as Storyboard;
+  return null;
+}
+
+function buildContextFromProject(row: {
+  id: string;
+  title: string;
+  artist: string;
+  lyrics: string;
+  creative_direction: string;
+  duration_sec: number | null;
+  world_state: unknown;
+  storyboard: unknown;
+}, sceneId: string): GenerationWorldContext | null {
+  const board = parseStoryboard(row.storyboard);
+  if (!board?.scenes?.length) return null;
+  const scenes = [...board.scenes].sort((a, b) => a.startSec - b.startSec);
+  const idx = scenes.findIndex((s) => s.id === sceneId);
+  if (idx < 0) return null;
+  const scene = scenes[idx];
+  const world = (row.world_state || {}) as WorldStateBlob;
+  const characters = world.characters ?? [];
+  const environments = world.environments ?? [];
+
+  return {
+    title: row.title,
+    artist: row.artist,
+    lyrics: row.lyrics,
+    creativeDirection: row.creative_direction,
+    durationSec: row.duration_sec,
+    scene: {
+      id: scene.id,
+      startSec: scene.startSec,
+      endSec: scene.endSec,
+      sectionId: scene.sectionId,
+      environmentId: scene.environmentId,
+      environmentName: environments.find((e) => e.id === scene.environmentId)?.name,
+      environmentDescription: environments.find((e) => e.id === scene.environmentId)
+        ?.description,
+      characterIds: scene.characterIds,
+      characters: characters.filter((c) => scene.characterIds.includes(c.id)),
+      camera: scene.camera,
+      summary: scene.summary,
+      previousSceneId: idx > 0 ? scenes[idx - 1].id : null,
+      nextSceneId: idx + 1 < scenes.length ? scenes[idx + 1].id : null,
+      sceneNumber: idx + 1,
+      totalScenes: scenes.length,
+    },
+    world: {
+      report: world.report,
+      styleBible: world.styleBible,
+      characters,
+      environments,
+      visualRules: world.visualRules,
+      lockedAt: world.lockedAt ?? board.lockedAt ?? null,
+    },
+  };
+}
+
 const CreateJobSchema = z.object({
   projectId: z.string().min(1),
   sceneId: z.string().min(1),
@@ -62,11 +142,6 @@ const CreateJobSchema = z.object({
   capability: z.enum(["still_image", "video_clip", "motion"]),
 });
 
-/**
- * Create and attempt a generation job.
- * If no provider is available, status is "unavailable" with a clear message.
- * Never inserts a fake media asset on failure.
- */
 export const createGenerationJob = createServerFn({ method: "POST" })
   .validator(CreateJobSchema)
   .handler(async ({ data }) => {
@@ -75,6 +150,45 @@ export const createGenerationJob = createServerFn({ method: "POST" })
     const capability = data.capability as ProviderCapability;
     const { provider, availability } = resolveProvider(capability);
 
+    const rows = await sql<{
+      id: string;
+      title: string;
+      artist: string;
+      lyrics: string;
+      creative_direction: string;
+      duration_sec: number | null;
+      world_state: unknown;
+      storyboard: unknown;
+    }>`
+      select id, title, artist, lyrics, creative_direction, duration_sec,
+             world_state, storyboard
+      from bv_projects
+      where id = ${data.projectId}
+      limit 1
+    `;
+    const project = rows[0];
+    if (!project) {
+      await sql`
+        insert into bv_generation_jobs (
+          id, project_id, scene_id, provider, status,
+          error_code, error_message, request_json
+        ) values (
+          ${id}, ${data.projectId}, ${data.sceneId}, ${provider.id},
+          ${"failed"}, ${"invalid_request"}, ${"Project not found."},
+          ${JSON.stringify(data)}::jsonb
+        )
+      `;
+      return {
+        jobId: id,
+        status: "failed" as const,
+        provider: provider.id,
+        errorCode: "invalid_request",
+        errorMessage: "Project not found.",
+        mediaAssetId: null as string | null,
+      };
+    }
+
+    const context = buildContextFromProject(project, data.sceneId);
     const requestJson = {
       projectId: data.projectId,
       sceneId: data.sceneId,
@@ -82,6 +196,7 @@ export const createGenerationJob = createServerFn({ method: "POST" })
       startSec: data.startSec,
       endSec: data.endSec,
       capability,
+      hasContext: Boolean(context),
     };
 
     if (!availability.available) {
@@ -110,7 +225,6 @@ export const createGenerationJob = createServerFn({ method: "POST" })
       };
     }
 
-    // Mark running, then call provider
     await sql`
       insert into bv_generation_jobs (
         id, project_id, scene_id, provider, status, request_json
@@ -131,6 +245,8 @@ export const createGenerationJob = createServerFn({ method: "POST" })
       startSec: data.startSec,
       endSec: data.endSec,
       capability,
+      requestId: id,
+      context: context ?? undefined,
     });
 
     if (!result.ok) {
@@ -190,6 +306,7 @@ export const createGenerationJob = createServerFn({ method: "POST" })
       errorCode: null as string | null,
       errorMessage: null as string | null,
       mediaAssetId: assetId,
+      mediaUrl: result.url,
     };
   });
 
@@ -227,7 +344,7 @@ export const listMediaAssets = createServerFn({ method: "GET" })
 
 export const getProviderStatus = createServerFn({ method: "GET" }).handler(
   async () => {
-    const { getProviderStatuses } = await import("./providers/registry.ts");
-    return getProviderStatuses();
+    const { getProviderStatusesLive } = await import("./providers/registry.ts");
+    return getProviderStatusesLive();
   }
 );
