@@ -198,6 +198,11 @@ function WorldStudioPage() {
     setSaved(true);
   }
 
+  function goToStoryboard() {
+    if (!world?.lockedAt) return;
+    navigate({ to: "/project/storyboard" });
+  }
+
   if (!world) {
     return (
       <div className="min-h-screen flex items-center justify-center text-[var(--bv-muted)]">
@@ -381,6 +386,15 @@ function WorldStudioPage() {
           >
             {lockedAt ? "Update locked world" : "Lock world for storyboard"}
           </button>
+          {lockedAt && (
+            <button
+              type="button"
+              onClick={goToStoryboard}
+              className="rounded-xl border border-[var(--bv-accent)] px-6 py-3 text-sm font-semibold text-[var(--bv-accent)] hover:bg-[var(--bv-accent)]/10"
+            >
+              Continue to Storyboard
+            </button>
+          )}
           {saved && (
             <span className="text-sm text-[var(--bv-success)]">
               World state saved. Ready for storyboard phase.
