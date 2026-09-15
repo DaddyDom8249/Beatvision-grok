@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createProject, listProjects } from "@/lib/beatvision";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -23,6 +24,17 @@ function Home() {
     notes: "",
   });
   const [audioName, setAudioName] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [recent, setRecent] = useState<
+    { id: string; title: string; artist: string; updated_at: string }[]
+  >([]);
+
+  useEffect(() => {
+    listProjects()
+      .then(setRecent)
+      .catch(() => setRecent([]));
+  }, []);
 
   const canStart =
     draft.title.trim().length > 0 &&
@@ -34,13 +46,43 @@ function Home() {
     setAudioName(file ? file.name : null);
   }
 
-  function handleStart() {
-    if (!canStart) return;
-    // Persist draft for the next step (client-side for Phase 1)
-    sessionStorage.setItem(
-      "bv-project-draft",
-      JSON.stringify({ ...draft, audioName })
-    );
+  async function handleStart() {
+    if (!canStart || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = {
+        title: draft.title.trim(),
+        artist: draft.artist.trim(),
+        lyrics: draft.lyrics,
+        creativeDirection: draft.creativeDirection,
+        notes: draft.notes,
+        audioName,
+      };
+      const { id } = await createProject({ data: payload });
+      // Keep session cache for fast hand-off; DB is source of truth
+      sessionStorage.setItem("bv-project-id", id);
+      sessionStorage.setItem(
+        "bv-project-draft",
+        JSON.stringify({ ...payload, audioName })
+      );
+      navigate({ to: "/project/new" });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not create project"
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function openProject(id: string) {
+    sessionStorage.setItem("bv-project-id", id);
+    // Clear stage caches so downstream pages load from DB
+    sessionStorage.removeItem("bv-project-draft");
+    sessionStorage.removeItem("bv-world-report");
+    sessionStorage.removeItem("bv-world-state");
+    sessionStorage.removeItem("bv-storyboard");
     navigate({ to: "/project/new" });
   }
 
@@ -68,6 +110,7 @@ function Home() {
             <p className="mt-2 text-[var(--bv-muted)] leading-relaxed">
               The song is the master creative and timeline source. Upload the
               audio, add lyrics and direction, then reveal its visual world.
+              Projects are stored in the database and survive refresh.
             </p>
           </div>
 
@@ -124,7 +167,8 @@ function Home() {
               </div>
               <p className="text-xs text-[var(--bv-muted)]">
                 Optional for now — lyrics alone can start a world. Audio becomes
-                the master timeline later.
+                the master timeline later. Filename is stored; bytes come in a
+                later phase.
               </p>
             </label>
 
@@ -176,17 +220,51 @@ function Home() {
               />
             </label>
 
+            {error && (
+              <p className="text-sm text-red-400">{error}</p>
+            )}
+
             <div className="pt-2">
               <button
                 type="button"
-                disabled={!canStart}
+                disabled={!canStart || saving}
                 onClick={handleStart}
                 className="w-full sm:w-auto rounded-xl bg-[var(--bv-accent)] px-6 py-3 text-sm font-semibold text-[#0a0a0f] transition hover:bg-[var(--bv-accent-2)] disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Continue to Reveal World
+                {saving ? "Creating project…" : "Continue to Reveal World"}
               </button>
             </div>
           </div>
+
+          {recent.length > 0 && (
+            <div className="rounded-2xl border border-[var(--bv-border)] bg-[var(--bv-surface)] p-6 space-y-3">
+              <h3 className="text-sm font-semibold text-[var(--bv-text)]">
+                Recent projects
+              </h3>
+              <p className="text-xs text-[var(--bv-muted)]">
+                Auth is off — projects are unowned and listed here for this
+                deployment. Open one to continue from where it left off.
+              </p>
+              <ul className="space-y-2">
+                {recent.map((p) => (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onClick={() => openProject(p.id)}
+                      className="w-full text-left rounded-xl border border-[var(--bv-border)] bg-[var(--bv-surface-2)] px-4 py-3 hover:border-[var(--bv-accent)] transition"
+                    >
+                      <span className="font-medium text-[var(--bv-text)] text-sm">
+                        {p.title}
+                      </span>
+                      <span className="text-[var(--bv-muted)] text-sm">
+                        {" "}by {p.artist}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
       </main>
     </div>
