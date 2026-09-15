@@ -1,8 +1,9 @@
 /**
- * Provider registry. Swap implementations here when real backends are ready.
- * Currently only the null provider is registered — generation stays honest.
+ * Provider registry. Arena is preferred when configured and healthy.
+ * Null provider remains for explicit no-provider development only.
  */
 
+import { arenaProvider } from "./arena-provider.ts";
 import { nullProvider } from "./null-provider.ts";
 import type {
   ProviderAvailability,
@@ -11,7 +12,8 @@ import type {
   SceneMediaProvider,
 } from "./types.ts";
 
-const providers: SceneMediaProvider[] = [nullProvider];
+/** Order matters: first available matching capability wins. */
+const providers: SceneMediaProvider[] = [arenaProvider, nullProvider];
 
 export function listProviders(): SceneMediaProvider[] {
   return [...providers];
@@ -26,19 +28,40 @@ export function resolveProvider(
   capability: ProviderCapability
 ): { provider: SceneMediaProvider; availability: ProviderAvailability } {
   for (const p of providers) {
+    if (p.id === "none") continue;
     const avail = p.availability();
-    if (
-      avail.available &&
-      avail.capabilities.includes(capability)
-    ) {
+    if (avail.available && avail.capabilities.includes(capability)) {
       return { provider: p, availability: avail };
     }
   }
-  // Fall back to null provider availability
+  // If Arena is registered but unavailable, surface that reason — do not silently
+  // pretend null is the primary path when Arena was the intended provider.
+  const arena = providers.find((p) => p.id === "beatvision-arena");
+  if (arena) {
+    const a = arena.availability();
+    if (!a.available && arena.capabilities.includes(capability)) {
+      return { provider: arena, availability: a };
+    }
+  }
   const nullAvail = nullProvider.availability();
   return { provider: nullProvider, availability: nullAvail };
 }
 
 export function getProviderStatuses(): ProviderAvailability[] {
   return providers.map((p) => p.availability());
+}
+
+/** Live status (health check for Arena). Does not trigger generation. */
+export async function getProviderStatusesLive(): Promise<
+  ProviderAvailability[]
+> {
+  const out: ProviderAvailability[] = [];
+  for (const p of providers) {
+    if (p.checkAvailability) {
+      out.push(await p.checkAvailability());
+    } else {
+      out.push(p.availability());
+    }
+  }
+  return out;
 }
